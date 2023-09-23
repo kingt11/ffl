@@ -1,0 +1,17 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# settings
+settings.json
+
+#folders
+csv_output/
+jupyter/
+
+# cache
+/pycache/*
+*.pyc
