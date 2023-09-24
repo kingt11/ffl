@@ -1,24 +1,11 @@
 import requests
 import pandas as pd
 
-# add week and year to each iteration
+# create matchups dataframe for the entire season
 
 
-def append_week_year(json_data, df):
-    # Extracting 'scoringPeriodId' and 'seasonId' from the JSON data
-    week_number = json_data[0].get('scoringPeriodId', None)
-    year = json_data[0].get('seasonId', None)
-
-    # Appending the 'scoringPeriodId' and 'seasonId' as new columns to the matchups DataFrame
-    df['week_number'] = week_number
-    df['year'] = year
-
-    return df
-
-# create matchups dataframe
-
-
-def create_matchups(json_data):
+def create_matchups(league_id, espn_cookies, season):
+    json_data = get_raw_data(league_id, espn_cookies, 1,  season)
     matchups_list = []
 
     for record in json_data:
@@ -39,19 +26,21 @@ def create_matchups(json_data):
                     'home_tiebreak': matchups.get('home', {}).get('tiebreak', None),
                     'away_teamId': away_teamId,
                     'away_points': matchups.get('away', {}).get('totalPoints', None),
-                    'away_tiebreak': matchups.get('away', {}).get('tiebreak', None)
+                    'away_tiebreak': matchups.get('away', {}).get('tiebreak', None),
+                    'week_number': matchups.get('matchupPeriodId', None),
+                    'year': record.get('seasonId', None)
                 }
                 matchups_list.append(matchup_data)
 
     df_matchups_updated = pd.DataFrame(matchups_list)
-    df_matchups_updated = append_week_year(json_data, df_matchups_updated)
 
     return df_matchups_updated
 
-# create roster dataframe
+# create roster dataframe for one week
 
 
-def create_roster(json_data):
+def create_roster(league_id, espn_cookies, period, season):
+    json_data = get_raw_data(league_id, espn_cookies, period, season)
     roster_list = []
 
     for record in json_data:
@@ -65,6 +54,9 @@ def create_roster(json_data):
                         df_roster['matchup'] = matchup_number
                         df_roster['location'] = loc
                         df_roster['teamId'] = matchups[loc].get('teamId', None)
+                        df_roster['week_number'] = matchups.get(
+                            'matchupPeriodId', None)
+                        df_roster['year'] = record.get('seasonId', None)
                         roster_list.append(df_roster)
 
     df_roster = pd.concat(roster_list, ignore_index=True)
@@ -80,7 +72,9 @@ def create_roster(json_data):
         'playerPoolEntry_player_injured': 'injured',
         'playerPoolEntry_player_lastName': 'playerLastName',
         'location': 'location',
-        'teamId': 'teamId'
+        'teamId': 'teamId',
+        'week_number': 'week_number',
+        'year': 'year'
     }
 
     # Create a refined roster DataFrame based on the selected columns
@@ -99,9 +93,21 @@ def create_roster(json_data):
     df_roster_refined = df_roster_refined.merge(
         position_key_df, on='positionId', how='left')
 
-    df_roster_refined = append_week_year(json_data, df_roster_refined)
+    # Extracting the 'teams' key and converting it into a pandas DataFrame
+    teams_df = None
+    for record in json_data:
+        if 'teams' in record:
+            teams_df = pd.json_normalize(record['teams'])
 
-    return df_roster_refined
+    # Selecting the desired columns from the teams DataFrame
+    selected_columns_teams = [
+        'abbrev', 'id', 'location', 'logo', 'name', 'nickname', 'owners', 'primaryOwner', 'rankCalculatedFinal', 'waiverRank'
+    ]
+    teams_df_refined = teams_df[selected_columns_teams]
+    df_roster_final = df_roster_refined.merge(
+        teams_df_refined, how='left', left_on='teamId', right_on='id')
+
+    return df_roster_final
 
 # calls api and returns the raw data in JSON format
 

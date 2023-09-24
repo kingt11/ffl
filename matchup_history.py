@@ -15,17 +15,14 @@ ESPN_S2_COOKIES = os.getenv('ESPN_S2_COOKIES')
 espn_cookies = {'swid': SWID_COOKIES,
                 'espn_s2': ESPN_S2_COOKIES}
 
-# testing with one week in one year - will loop through once complete
-scoring_period_id = 1
-season_id = 2015
 
-# pull in raw data
-espn_raw_data = clean.get_raw_data(
-    LEAGUE_ID, espn_cookies, scoring_period_id, season_id)
+# Creating an dataFrame for matchups for one season
+df_matchups = clean.create_matchups(LEAGUE_ID, espn_cookies, 2015)
 
-# create dataframes
-# Creating an updated DataFrame for matchups and roster data
-df_matchups = clean.create_matchups(espn_raw_data)
-df_roster = clean.create_roster(espn_raw_data)
+# Creating an dataFrame for roster for one season
+roster_season = []
+for i in range(1, 17):
+    df = clean.create_roster(LEAGUE_ID, espn_cookies, i, 2015)
+    roster_season.append(df)
 
-df_roster.to_csv('csv_output/roster.csv')
+df_roster_season = pd.concat(roster_season, ignore_index=True)
