@@ -34,7 +34,49 @@ def create_matchups(league_id, espn_cookies, season):
 
     df_matchups_updated = pd.DataFrame(matchups_list)
 
-    return df_matchups_updated
+    # Extracting the 'teams' key and converting it into a pandas DataFrame
+    teams_df = None
+    for record in json_data:
+        if 'teams' in record:
+            teams_df = pd.json_normalize(record['teams'])
+
+    # Selecting the desired columns from the teams DataFrame
+    selected_columns_teams = [
+        'abbrev', 'id', 'location', 'logo', 'name', 'nickname', 'owners', 'primaryOwner', 'rankCalculatedFinal', 'waiverRank'
+    ]
+    winner_columns_teams = [
+        'abbrev', 'id', 'name', 'primaryOwner'
+    ]
+    # home column names
+    home_column_names = {item: 'home_' +
+                         item for item in selected_columns_teams}
+    # away column names
+    away_column_names = {item: 'away_' +
+                         item for item in selected_columns_teams}
+    # winner column names
+    winner_column_names = {item: 'winner_' +
+                           item for item in winner_columns_teams}
+
+    teams_df_refined = teams_df[selected_columns_teams]
+
+    # merge winner and rename columns
+    df_roster_final = df_matchups_updated.merge(
+        teams_df_refined, how='left', left_on='winner', right_on='id')
+    df_roster_final = df_roster_final.rename(columns=winner_column_names)
+
+    # merge home team and rename columns
+    df_roster_final = df_roster_final.merge(
+        teams_df_refined, how='left', left_on='home_teamId', right_on='id')
+
+    df_roster_final = df_roster_final.rename(columns=home_column_names)
+
+    # merge away team and rename columns
+    df_roster_final = df_roster_final.merge(
+        teams_df_refined, how='left', left_on='away_teamId', right_on='id')
+
+    df_roster_final = df_roster_final.rename(columns=away_column_names)
+
+    return df_roster_final
 
 # create roster dataframe for one week
 
