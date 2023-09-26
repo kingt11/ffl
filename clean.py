@@ -170,20 +170,3 @@ def get_raw_data(league_id, espn_cookies, period, season):
     espn_raw_data = r.json()
 
     return espn_raw_data
-
-
-def append_teams(json_data, df):
-    # Extracting the 'teams' key and converting it into a pandas DataFrame
-    teams_df = None
-    for record in json_data:
-        if 'teams' in record:
-            teams_df = pd.json_normalize(record['teams'])
-
-    # Selecting the desired columns from the teams DataFrame
-    selected_columns_teams = [
-        'abbrev', 'id', 'location', 'logo', 'name', 'nickname', 'owners', 'primaryOwner', 'rankCalculatedFinal', 'waiverRank'
-    ]
-    teams_df_refined = teams_df[selected_columns_teams]
-
-    # NEED TO MERGE DATAFRAME FOR ROSTER BASED ON ID BUT MATCHUPS WILL BE DIFFERENT BECAUSE THERE IS A HOME AND AWAY TEAM
-    # return df.merge(teams_df_refined, how='left', left_on'
